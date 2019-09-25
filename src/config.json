@@ -1,0 +1,7 @@
+{
+    "debug":    1,
+    "universe": 4,
+    "address":  1,
+    "protocol": "sacn",
+    "interface": "en0"
+}
