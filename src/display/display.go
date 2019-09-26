@@ -1,17 +1,12 @@
 package display
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"v2sdl/config"
 
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 )
-
-type single uint8
-type double int16
 
 type MasterLayer struct {
 	Red       single
@@ -23,29 +18,17 @@ type MasterLayer struct {
 	ScaleY    double
 	RotateZ   double
 	Mode      single
-}
-
-type MediaLayer struct {
-	Intensity  single
-	Library    single
-	File       single
-	Volume     single
-	XPosition  double
-	YPosition  double
-	ScaleX     double
-	ScaleY     double
-	RotateZ    double
-	Brightness single
-	Contrast   single
-	Playmode   single
+	texture   *sdl.Texture
 }
 
 type Display struct {
 	window   *sdl.Window
 	renderer *sdl.Renderer
 	fps      gfx.FPSmanager
-	state    MasterLayer
+	master   MasterLayer
 	layers   []MediaLayer
+	packet   []byte
+	current  int
 
 	Debug bool
 }
@@ -75,20 +58,48 @@ func NewDisplay(title string, cfg config.Config) (d *Display, err error) {
 }
 
 func (d *Display) Tick() {
-	d.renderer.Clear()
+	date := ""
+	rend := d.renderer
+	rect := rend.GetViewport()
+
+	rend.SetDrawColor(d.master.Red.value, d.master.Green.value, d.master.Blue.value, 255)
+	rend.FillRect(&rect)
+
+	for n := len(d.layers); n > 0; {
+		n--
+
+		layer := d.layers[n]
+		intensity := layer.Intensity.get()
+		c := layer.content
+		if c != nil && intensity > 0 {
+			s := c.Surface()
+			if layer.texture == nil {
+				layer.texture, _ = rend.CreateTextureFromSurface(s)
+				layer.texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+			}
+			src := sdl.Rect{X: 0, Y: 0, W: s.W, H: s.H}
+			t := layer.texture
+			if intensity < 255 {
+				t.SetAlphaMod(intensity)
+			} else {
+				t.SetBlendMode(sdl.BLENDMODE_NONE)
+			}
+			rend.Copy(t, &src, &rect)
+		}
+	}
 
 	if d.Debug {
 		y := int32(10)
-		date, _ := json.Marshal(d.state)
-		gfx.StringRGBA(d.renderer, 10, y, string(date), 255, 255, 255, 255)
+		// date := d.master.String()
+		gfx.StringRGBA(rend, 10, y, string(date), 0, 255, 255, 255)
 
-		for _, layer := range d.layers {
-			y += 20
-			date, _ := json.Marshal(layer)
-			gfx.StringRGBA(d.renderer, 10, y, string(date), 255, 255, 255, 255)
-		}
+		// for _, layer := range d.layers {
+		// 	y += 20
+		// 	date, _ := json.Marshal(layer)
+		// 	gfx.StringRGBA(rend, 10, y, string(date), 255, 255, 255, 255)
+		// }
 	}
-	d.renderer.Present()
+	rend.Present()
 }
 
 func (d *Display) Close() {
@@ -100,9 +111,24 @@ func (d *Display) Close() {
 	}
 }
 
+func (d *MasterLayer) String() string {
+	a := []interface{}{
+		d.Red,
+		d.Green,
+		d.Blue,
+		d.XPosition,
+		d.YPosition,
+		d.ScaleX,
+		d.ScaleY,
+		d.RotateZ,
+		d.Mode,
+	}
+	return fmt.Sprintf("%v", a)
+}
+
 func (d *Display) EventLoop() {
 	for {
-		e := sdl.WaitEventTimeout(10)
+		e := sdl.WaitEventTimeout(100)
 		if e != nil && e.GetType() == sdl.QUIT {
 			break
 		}
@@ -116,15 +142,26 @@ func (d *Display) OnFrame(b []byte) {
 		return
 	}
 
-	in := bytes.NewReader(b)
-	d.state.OnFrame(in)
+	d.packet = b
+	d.current = 0
+
+	d.master.OnFrame(d)
 	for i := range d.layers {
-		d.layers[i].OnFrame(in)
+		d.layers[i].OnFrame(d)
 	}
-	d.state.Background(in)
+	d.master.Background(d)
 }
 
-func (s *MasterLayer) OnFrame(in *bytes.Reader) {
+func (d *Display) next() byte {
+	if d.current >= len(d.packet) {
+		return 0
+	}
+	c := d.current
+	d.current++
+	return d.packet[c]
+}
+
+func (s *MasterLayer) OnFrame(in *Display) {
 	s.Mode.from(in)
 	s.XPosition.from(in)
 	s.YPosition.from(in)
@@ -133,13 +170,13 @@ func (s *MasterLayer) OnFrame(in *bytes.Reader) {
 	s.RotateZ.from(in)
 }
 
-func (s *MasterLayer) Background(in *bytes.Reader) {
+func (s *MasterLayer) Background(in *Display) {
 	s.Red.from(in)
 	s.Green.from(in)
 	s.Blue.from(in)
 }
 
-func (s *MediaLayer) OnFrame(in *bytes.Reader) {
+func (s *MediaLayer) OnFrame(in *Display) {
 	s.Intensity.from(in)
 	s.Library.from(in)
 	s.File.from(in)
@@ -152,16 +189,8 @@ func (s *MediaLayer) OnFrame(in *bytes.Reader) {
 	s.Brightness.from(in)
 	s.Contrast.from(in)
 	s.Playmode.from(in)
-}
 
-func (d *single) from(r *bytes.Reader) {
-	b, _ := r.ReadByte()
-	*d = single(b)
-}
-
-func (d *double) from(r *bytes.Reader) {
-	ub, _ := r.ReadByte()
-	lb, _ := r.ReadByte()
-	w := int(ub)<<8 | int(lb)
-	*d = double(w + 32768)
+	if s.Library.changed() || s.File.changed() {
+		s.loadContent()
+	}
 }

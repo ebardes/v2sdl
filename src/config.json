@@ -3,5 +3,6 @@
     "universe": 4,
     "address":  1,
     "protocol": "sacn",
-    "interface": "en0"
+    "interface": "en0",
+    "storage": "/Volumes/SATA/Users/eric/media"
 }
