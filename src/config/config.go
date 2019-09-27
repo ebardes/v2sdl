@@ -21,12 +21,8 @@ type Config struct {
 var Media Content
 
 type Content struct {
-	Groups map[int]Group
+	Groups map[int]map[int]Item
 	home   string
-}
-
-type Group struct {
-	Items map[int]Item
 }
 
 type Item struct {
@@ -59,7 +55,7 @@ func Load() (cfg Config, err error) {
 	m, err := os.Open(fn)
 	if err != nil {
 		err = nil
-		Media.Groups = make(map[int]Group)
+		Media.Groups = make(map[int]map[int]Item)
 
 		Media.Save()
 		return
@@ -76,25 +72,13 @@ func Load() (cfg Config, err error) {
 
 func (c *Content) Get(group, item int) *Item {
 	if g, ok := c.Groups[group]; ok {
-		if item, ok := g.Items[item]; ok {
+		if item, ok := g[item]; ok {
 			groupdir := fmt.Sprintf("group_%03d", group)
 			item.home = path.Join(c.home, groupdir, item.File)
 			return &item
 		}
 	}
 	return nil
-}
-
-func (c *Content) Put(group, item int, x Item) {
-	g, ok := c.Groups[group]
-	if !ok {
-		g = Group{}
-		g.Items = make(map[int]Item)
-		c.Groups[group] = g
-	}
-	g.Items[item] = x
-
-	go c.Save()
 }
 
 func (c *Content) Save() {

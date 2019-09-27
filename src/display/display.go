@@ -29,8 +29,8 @@ type Display struct {
 	layers   []MediaLayer
 	packet   []byte
 	current  int
-
-	Debug bool
+	running  bool
+	Debug    bool
 }
 
 func NewDisplay(title string, cfg config.Config) (d *Display, err error) {
@@ -69,35 +69,14 @@ func (d *Display) Tick() {
 		n--
 
 		layer := d.layers[n]
-		intensity := layer.Intensity.get()
-		c := layer.content
-		if c != nil && intensity > 0 {
-			s := c.Surface()
-			if layer.texture == nil {
-				layer.texture, _ = rend.CreateTextureFromSurface(s)
-				layer.texture.SetBlendMode(sdl.BLENDMODE_BLEND)
-			}
-			src := sdl.Rect{X: 0, Y: 0, W: s.W, H: s.H}
-			t := layer.texture
-			if intensity < 255 {
-				t.SetAlphaMod(intensity)
-			} else {
-				t.SetBlendMode(sdl.BLENDMODE_NONE)
-			}
-			rend.Copy(t, &src, &rect)
+		if layer.content != nil {
+			layer.content.Draw(rend, &layer)
 		}
 	}
 
 	if d.Debug {
 		y := int32(10)
-		// date := d.master.String()
 		gfx.StringRGBA(rend, 10, y, string(date), 0, 255, 255, 255)
-
-		// for _, layer := range d.layers {
-		// 	y += 20
-		// 	date, _ := json.Marshal(layer)
-		// 	gfx.StringRGBA(rend, 10, y, string(date), 255, 255, 255, 255)
-		// }
 	}
 	rend.Present()
 }
@@ -127,12 +106,15 @@ func (d *MasterLayer) String() string {
 }
 
 func (d *Display) EventLoop() {
-	for {
-		e := sdl.WaitEventTimeout(100)
-		if e != nil && e.GetType() == sdl.QUIT {
-			break
-		}
 
+	for {
+		e := sdl.WaitEventTimeout(25)
+		if e != nil {
+			et := e.GetType()
+			if et == sdl.QUIT {
+				break
+			}
+		}
 		d.Tick()
 	}
 }
@@ -150,6 +132,7 @@ func (d *Display) OnFrame(b []byte) {
 		d.layers[i].OnFrame(d)
 	}
 	d.master.Background(d)
+
 }
 
 func (d *Display) next() byte {
@@ -189,8 +172,9 @@ func (s *MediaLayer) OnFrame(in *Display) {
 	s.Brightness.from(in)
 	s.Contrast.from(in)
 	s.Playmode.from(in)
+	s.Flip.from(in)
 
 	if s.Library.changed() || s.File.changed() {
-		s.loadContent()
+		s.loadContent(in.renderer)
 	}
 }

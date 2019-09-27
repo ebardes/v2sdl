@@ -8,7 +8,7 @@ import (
 )
 
 type Content interface {
-	Surface() *sdl.Surface
+	Draw(r *sdl.Renderer, layer *MediaLayer)
 	Destroy()
 	Start()
 	Stop()
@@ -27,12 +27,13 @@ type MediaLayer struct {
 	Brightness single
 	Contrast   single
 	Playmode   single
+	Flip       single
 
 	content Content
 	texture *sdl.Texture
 }
 
-func (ml *MediaLayer) loadContent() (err error) {
+func (ml *MediaLayer) loadContent(r *sdl.Renderer) (err error) {
 	go func() {
 		if ml.content != nil {
 			ml.content.Destroy()
@@ -53,7 +54,7 @@ func (ml *MediaLayer) loadContent() (err error) {
 
 			log.Debug().Str("fn", fn).Msg("Attempting to load file")
 
-			ml.content, err = NewImageContent(fn)
+			ml.content, err = NewImageContent(fn, r)
 			if err != nil {
 				log.Error().Err(err).Msg("Error loading content")
 			}

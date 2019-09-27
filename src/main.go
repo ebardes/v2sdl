@@ -7,6 +7,7 @@ import (
 	"v2sdl/dmx"
 	"v2sdl/dmx/artnet"
 	"v2sdl/dmx/sacn"
+	"v2sdl/web"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -16,6 +17,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	w := web.WebServer{}
+	w.Start(&cfg)
 
 	var net dmx.NetDMX
 
@@ -41,7 +45,7 @@ func main() {
 
 	sdl.Main(func() {})
 
-	d, err := display.NewDisplay("Hello", cfg)
+	d, err := display.NewDisplay("Media Server", cfg)
 	if err != nil {
 		log.Panic(err)
 	}
