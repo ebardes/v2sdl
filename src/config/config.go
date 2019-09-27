@@ -9,6 +9,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type Service interface {
+	Start(*Config) error
+	Stop()
+	Refresh(*Config) error
+	Name() string
+}
+
 type Config struct {
 	DebugLevel int    `json:"debug"`
 	Universe   int    `json:"universe"`
@@ -16,6 +23,9 @@ type Config struct {
 	Interface  string `json:"interface"`
 	Protocol   string `json:"protocol"`
 	Storage    string `json:"storage"`
+
+	location string
+	services map[string]Service
 }
 
 var Media Content
@@ -32,8 +42,11 @@ type Item struct {
 	home string
 }
 
-func Load() (cfg Config, err error) {
-	f, err := os.Open("config.json")
+func Load(fn string) (cfg Config, err error) {
+	if fn == "" {
+		fn = "config.json"
+	}
+	f, err := os.Open(fn)
 	if err != nil {
 		return
 	}
@@ -45,13 +58,15 @@ func Load() (cfg Config, err error) {
 		return
 	}
 
+	cfg.location = fn
+
 	Media.home = cfg.Storage
 	if Media.home == "" {
 		Media.home = os.ExpandEnv("${HOME}/media")
 	}
 	os.MkdirAll(Media.home, 0777)
 
-	fn := path.Join(Media.home, "media.json")
+	fn = path.Join(Media.home, "media.json")
 	m, err := os.Open(fn)
 	if err != nil {
 		err = nil
@@ -94,3 +109,25 @@ func (c *Content) Save() {
 }
 
 func (i *Item) Path() string { return i.home }
+
+func (c *Config) AddAndStartService(s Service) {
+	if c.services == nil {
+		c.services = make(map[string]Service)
+	}
+
+	name := s.Name()
+	srv, ok := c.services[name]
+	if ok {
+		srv.Stop()
+	}
+
+	c.services[name] = s
+	s.Start(c)
+}
+
+func (c *Config) StopAll() {
+	for _, srv := range c.services {
+		srv.Stop()
+	}
+	c.services = nil
+}

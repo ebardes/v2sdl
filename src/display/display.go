@@ -22,6 +22,7 @@ type MasterLayer struct {
 }
 
 type Display struct {
+	config.Service
 	window   *sdl.Window
 	renderer *sdl.Renderer
 	fps      gfx.FPSmanager
@@ -30,14 +31,22 @@ type Display struct {
 	packet   []byte
 	current  int
 	running  bool
+	title    string
 	Debug    bool
 }
 
-func NewDisplay(title string, cfg config.Config) (d *Display, err error) {
-	d = &Display{Debug: cfg.DebugLevel > 2}
-	d.layers = make([]MediaLayer, 5)
+func NewDisplay(title string, cfg config.Config) (d *Display) {
+	d = &Display{
+		Debug:  cfg.DebugLevel > 2,
+		layers: make([]MediaLayer, 5),
+		title:  title,
+	}
 
-	d.window, err = sdl.CreateWindow(title, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 1024, 768, sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE|sdl.WINDOW_ALLOW_HIGHDPI)
+	return
+}
+
+func (d *Display) Start(*config.Config) (err error) {
+	d.window, err = sdl.CreateWindow(d.title, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 1024, 768, sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE|sdl.WINDOW_ALLOW_HIGHDPI)
 	if err != nil {
 		err = fmt.Errorf("Failed to create window: %v", err)
 		return
@@ -51,9 +60,7 @@ func NewDisplay(title string, cfg config.Config) (d *Display, err error) {
 		return
 	}
 
-	d.Debug = cfg.DebugLevel > 0
 	gfx.InitFramerate(&d.fps)
-
 	return
 }
 
@@ -81,7 +88,7 @@ func (d *Display) Tick() {
 	rend.Present()
 }
 
-func (d *Display) Close() {
+func (d *Display) Stop() {
 	if d.renderer != nil {
 		d.renderer.Destroy()
 	}
@@ -89,6 +96,8 @@ func (d *Display) Close() {
 		d.window.Destroy()
 	}
 }
+
+func (d *Display) Name() string { return "Display" }
 
 func (d *MasterLayer) String() string {
 	a := []interface{}{
@@ -106,7 +115,6 @@ func (d *MasterLayer) String() string {
 }
 
 func (d *Display) EventLoop() {
-
 	for {
 		e := sdl.WaitEventTimeout(25)
 		if e != nil {

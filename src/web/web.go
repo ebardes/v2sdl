@@ -10,11 +10,17 @@ import (
 )
 
 type WebServer struct {
+	config.Service
 }
 
-func (w *WebServer) Start(cfg *config.Config) {
+func (w *WebServer) Start(cfg *config.Config) (err error) {
 	go w.run(cfg)
+	return
 }
+
+func (w *WebServer) Name() string                 { return "Web Server" }
+func (w *WebServer) Stop()                        {}
+func (w *WebServer) Refresh(*config.Config) error { return nil }
 
 func (w *WebServer) run(cfg *config.Config) {
 	r := mux.NewRouter()

@@ -2,13 +2,14 @@ package artnet
 
 import (
 	"testing"
+	"v2sdl/config"
 )
 
 func TestNode(t *testing.T) {
-	s, err := NewService(nil)
+	cfg := config.Config{}
+	s, err := NewService(&cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.Run()
-	s.Stop()
+	s.run()
 }

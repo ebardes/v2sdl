@@ -163,7 +163,12 @@ func NewService(c *config.Config) (*ArtNet, error) {
 	return a, err
 }
 
-func (x *ArtNet) Run() {
+func (x *ArtNet) Start(*config.Config) error {
+	go x.run()
+	return nil
+}
+
+func (x *ArtNet) run() {
 	log.Println(x)
 	b := make([]byte, 8192)
 	for {
@@ -201,6 +206,10 @@ func (x *ArtNet) Run() {
 
 func (x *ArtNet) Stop() {
 
+}
+
+func (x *ArtNet) Refresh(*config.Config) (err error) {
+	return
 }
 
 func (x *ArtNet) DoOpTodRequest(b []byte) {

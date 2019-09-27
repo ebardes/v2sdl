@@ -11,18 +11,18 @@ import (
 
 // NetDMX is the base interface for DMX
 type NetDMX interface {
-	Run()
-	Stop()
-	Refresh()
+	config.Service
 	SetDisplay(d *display.Display)
 }
 
 // Common stores aspects common to all Networked DMX implementations
 type Common struct {
 	NetDMX
-	frame   []byte
-	Cfg     *config.Config
-	display *display.Display
+	frame    []byte
+	Cfg      *config.Config
+	Universe int
+	Address  int
+	display  *display.Display
 }
 
 // OnFrame is the main event listener for when DMX packets arrive
@@ -42,5 +42,4 @@ func (me *Common) OnFrame(addr net.Addr, b []byte) {
 	}
 }
 
-func (me *Common) Refresh()                      { me.frame = []byte{} }
 func (me *Common) SetDisplay(d *display.Display) { me.display = d }

@@ -60,9 +60,14 @@ type SACN struct {
 }
 
 // NewService creates a new instance
-func NewService(c *config.Config) (*SACN, error) {
-	x := SACN{}
+func NewService() *SACN {
+	return &SACN{}
+}
+
+func (x *SACN) Start(c *config.Config) (err error) {
 	x.Cfg = c
+	x.Universe = c.Universe
+	x.Address = c.Address
 	univHigh := c.Universe >> 8
 	univLow := c.Universe & 255
 	network := fmt.Sprintf(srvAddrTemplate, univHigh, univLow)
@@ -82,12 +87,16 @@ func NewService(c *config.Config) (*SACN, error) {
 	}
 
 	x.socket = socket
-	return &x, err
+
+	if err != nil {
+		go x.run()
+	}
+	return err
 }
 
 // Run starts a listening thread
-func (x *SACN) Run() {
-	log.Info().Msg("Started goroutine")
+func (x *SACN) run() {
+	log.Info().Msg("Started E1.31 goroutine")
 	defer log.Info().Msg("Exit goroutine")
 
 	b := make([]byte, maxDatagramSize)
@@ -115,4 +124,12 @@ func (x *SACN) Run() {
 // Stop ends the running thread
 func (x *SACN) Stop() {
 	x.socket.Close()
+}
+
+func (x *SACN) Refresh(*config.Config) (err error) {
+	return
+}
+
+func (x *SACN) Name() string {
+	return fmt.Sprintf("sACN service")
 }
