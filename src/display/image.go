@@ -51,7 +51,43 @@ func (i *Image) Draw(r *sdl.Renderer, layer *MediaLayer) {
 	}
 
 	dest := r.GetViewport()
-	center := sdl.Point{X: dest.W / 2, Y: dest.H / 2}
+
+	/*
+	 * calculate aspect ratio adjustments
+	 */
+	calcH1 := dest.W * i.rect.H / i.rect.W
+	calcW1 := dest.H * i.rect.W / i.rect.H
+	if calcH1 < dest.H {
+		diff := dest.H - calcH1
+		dest.Y = diff / 2
+		dest.H = calcH1
+	} else if calcW1 < dest.W {
+		diff := dest.W - calcW1
+		dest.X = diff / 2
+		dest.W = calcW1
+	}
+
+	/*
+	 * calculate positioning offsets
+	 */
+	x1 := int32(layer.XPosition.value) / 32
+	y1 := int32(layer.YPosition.value) / 32
+	dest.X += x1
+	dest.Y += y1
+
+	/*
+	 * calculate scaling
+	 */
+
+	sx1 := (int32(layer.ScaleX.value) + 32768)
+	sy1 := (int32(layer.ScaleY.value) + 32768)
+
+	dest.X -= dest.W * (sx1 - 16384) / 32768
+	dest.W = dest.W * sx1 / 16384
+	dest.Y -= dest.H * (sy1 - 16384) / 32768
+	dest.H = dest.H * sy1 / 16384
+
+	center := sdl.Point{X: (dest.W / 2) + dest.X, Y: (dest.H / 2) + dest.Y}
 	angle := float64(layer.RotateZ.get()) * 180.0 / 32768.0
 	i.texture.SetAlphaMod(layer.Intensity.get())
 	r.CopyEx(i.texture, &i.rect, &dest, angle, &center, flip)
