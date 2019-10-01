@@ -1,10 +1,50 @@
 <html>
 <head>
-  <script src="jquery-3.4.1.min.js"> </script>
+  <script src="v.js"> </script>
   <script src="v2sdl.js"> </script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+<div id="app">
 <h1>Media Server</h1>
+<fieldset><legend>Network</legend>
+Interface
+<select v-model="all.Config.interface">
+<option v-for="option in all.Interfaces" v-bind:value="option.Name">{{option.Info}}</option>
+</select>
+<br>
+Universe <input v-model="all.Config.universe">
+<br>
+Address <input v-model="all.Config.address">
+</fieldset>
+
+<div v-for="(group,index) in all.Media.Groups">
+  <h3>Group {{index}}</h3>
+  <div class="item" v-for="(slot,slotid) in group">
+    <div class="item-head">Slot {{addone(slotid)}}</div>
+    <div class="item-body">
+      <div class="item-image"><img v-bind:src="'../content/'+index+'/'+slotid"></div>
+      <div class="item-name">{{slot.Name}}</div>
+    </div>
+  </div>
+</div>
+<script>const app = new Vue({
+  el:'#app',
+  data:{
+    all:{}
+  },
+  methods: {
+    addone: function (index) {
+      return index+1
+    }
+  },
+  created() {
+    fetch('../api/config')
+      .then(response => response.json())
+      .then(json => {
+        this.all = json
+      })
+  }
+});</script>
 </body>
 </html>

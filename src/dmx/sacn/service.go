@@ -88,7 +88,7 @@ func (x *SACN) Start(c *config.Config) (err error) {
 
 	x.socket = socket
 
-	if err != nil {
+	if err == nil {
 		go x.run()
 	}
 	return err
