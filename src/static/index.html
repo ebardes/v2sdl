@@ -19,14 +19,20 @@ Address <input v-model="all.Config.address">
 </fieldset>
 
 <div v-for="(group,index) in all.Media.Groups">
-  <h3>Group {{index}}</h3>
+  <h3>Group {{groupid(index)}}</h3>
   <div class="item" v-for="(slot,slotid) in group">
     <div class="item-head">Slot {{addone(slotid)}}</div>
     <div class="item-body">
-      <div class="item-image"><img v-bind:src="'../content/'+index+'/'+slotid"></div>
+      <div class="item-image"><img v-bind:src="'../content/'+slot.Web"></div>
       <div class="item-name">{{slot.Name}}</div>
     </div>
   </div>
+  <div class="item">
+    <div class="item-head">New</div>
+    <div class="item-body">
+      <div class="item-name">New</div>
+    </div>
+  <div>
 </div>
 <script>const app = new Vue({
   el:'#app',
@@ -36,6 +42,12 @@ Address <input v-model="all.Config.address">
   methods: {
     addone: function (index) {
       return index+1
+    },
+    groupid: function(index) {
+      if (index == 0) {
+        index = "System"
+      }
+      return index
     }
   },
   created() {

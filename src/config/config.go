@@ -39,6 +39,7 @@ type Item struct {
 	File string
 	Name string
 	Type string
+	Web  string
 	home string
 }
 
@@ -82,6 +83,8 @@ func Load(fn string) (cfg Config, err error) {
 
 	data, err := json.Marshal(Media.Groups)
 	log.Debug().Err(err).Msg(fmt.Sprint(string(data)))
+
+	patchup(&Media.Groups)
 	return
 }
 
@@ -135,4 +138,14 @@ func (c *Config) StopAll() {
 		srv.Stop()
 	}
 	c.services = nil
+}
+
+func patchup(groups *[][]*Item) {
+	for g := range *groups {
+		groupdir := fmt.Sprintf("group_%03d", g)
+		for i := range (*groups)[g] {
+			item := (*groups)[g][i]
+			item.Web = path.Join(groupdir, item.File)
+		}
+	}
 }

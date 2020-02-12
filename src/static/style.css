@@ -7,9 +7,11 @@ body {
 div.item {
     display: inline-block;
     width: 200px;
+    height: 200px;
     max-width: 200px;
     margin-right: 10px;
     text-align: center;
+    vertical-align: top;
 }
 
 div.item div.item-head {
@@ -28,4 +30,9 @@ div.item div.item-body {
 }
 div.item .item-body .item-name {
     font-size: smaller;
+}
+
+div.item-image img {
+    max-width: 180px;
+    max-height: 180px;
 }
