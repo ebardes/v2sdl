@@ -11,7 +11,7 @@ type Image struct {
 	rect    sdl.Rect
 }
 
-func NewImageContent(fn string, r *sdl.Renderer) (i *Image, err error) {
+func NewImageContent(fn string, r *sdl.Renderer) (i Content, err error) {
 	s, err := img.Load(fn)
 	if err != nil {
 		return
@@ -92,3 +92,6 @@ func (i *Image) Draw(r *sdl.Renderer, layer *MediaLayer) {
 	i.texture.SetAlphaMod(layer.Intensity.get())
 	r.CopyEx(i.texture, &i.rect, &dest, angle, &center, flip)
 }
+
+func (v *Image) Start() {}
+func (v *Image) Stop()  {}
