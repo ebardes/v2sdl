@@ -47,7 +47,6 @@ func (ml *MediaLayer) loadContent(r *sdl.Renderer) (err error) {
 
 		group := int(ml.Library.get())
 		slot := int(ml.File.get())
-		log.Debug().Int("group", group).Int("slot", slot).Msg("Media Change")
 		item := config.Media.Get(group, slot)
 		if item != nil {
 			fn := item.Path()
@@ -59,7 +58,7 @@ func (ml *MediaLayer) loadContent(r *sdl.Renderer) (err error) {
 				log.Error().Err(err).Msg("Error loading content")
 			}
 		} else {
-			log.Debug().Msg("No item found")
+			log.Debug().Int("group", group).Int("slot", slot).Msg("No item found")
 		}
 	}()
 	return

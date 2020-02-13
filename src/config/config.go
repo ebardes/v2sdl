@@ -145,7 +145,9 @@ func patchup(groups *[][]*Item) {
 		groupdir := fmt.Sprintf("group_%03d", g)
 		for i := range (*groups)[g] {
 			item := (*groups)[g][i]
-			item.Web = path.Join(groupdir, item.File)
+			if item != nil {
+				item.Web = path.Join(groupdir, item.File)
+			}
 		}
 	}
 }
