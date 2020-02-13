@@ -1,6 +1,7 @@
 package display
 
 import (
+	"sync"
 	"v2sdl/config"
 
 	"github.com/rs/zerolog/log"
@@ -29,12 +30,21 @@ type MediaLayer struct {
 	Playmode   single
 	Flip       single
 
-	content Content
-	texture *sdl.Texture
+	content   Content
+	texture   *sdl.Texture
+	loadmutex *sync.Mutex
 }
 
-func (ml *MediaLayer) loadContent(r *sdl.Renderer) (err error) {
+// Init initializes some of the synchronization sensitive members
+func (ml *MediaLayer) Init() {
+	ml.loadmutex = &sync.Mutex{}
+}
+
+func (ml *MediaLayer) loadContent(group, slot int, r *sdl.Renderer) (err error) {
 	go func() {
+		ml.loadmutex.Lock()
+		defer ml.loadmutex.Unlock()
+
 		if ml.content != nil {
 			ml.content.Destroy()
 			ml.content = nil
@@ -45,8 +55,6 @@ func (ml *MediaLayer) loadContent(r *sdl.Renderer) (err error) {
 			ml.texture = nil
 		}
 
-		group := int(ml.Library.get())
-		slot := int(ml.File.get())
 		item := config.Media.Get(group, slot)
 		if item != nil {
 			fn := item.Path()

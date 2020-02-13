@@ -42,6 +42,10 @@ func NewDisplay(title string, cfg config.Config) (d *Display) {
 		title:  title,
 	}
 
+	for i := range d.layers {
+		d.layers[i].Init()
+	}
+
 	return
 }
 
@@ -183,6 +187,9 @@ func (s *MediaLayer) OnFrame(in *Display) {
 	s.Flip.from(in)
 
 	if s.Library.changed() || s.File.changed() {
-		s.loadContent(in.renderer)
+		group := int(s.Library.get())
+		slot := int(s.File.get())
+
+		s.loadContent(group, slot, in.renderer)
 	}
 }
