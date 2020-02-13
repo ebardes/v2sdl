@@ -9,6 +9,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type FullInfo struct {
+	os.FileInfo
+	Path string
+}
+
 func main() {
 	t := template.New("")
 	t, err := t.Parse(temp)
@@ -19,12 +24,14 @@ func main() {
 	files := os.Args[1:]
 	sort.Strings(files)
 
-	fileinfo := make([]os.FileInfo, len(files))
+	fileinfo := make([]FullInfo, len(files))
 	for i, fn := range files {
-		fileinfo[i], err = os.Stat(fn)
+		fi, err := os.Stat(fn)
 		if err != nil {
 			panic(err)
 		}
+		fileinfo[i].FileInfo = fi
+		fileinfo[i].Path = fn
 	}
 
 	err = t.Execute(os.Stdout, fileinfo)
@@ -40,12 +47,12 @@ _staticlen:
 
 {{- range $i,$n := . }}
 name_{{$i}}:
-.asciz "{{$n.Name}}"
+.asciz "{{$n.Path}}"
 {{- end }}
 
 {{- range $i,$n := . }}
 data_{{$i}}_start:
-.incbin "{{$n.Name}}"
+.incbin "{{$n.Path}}"
 data_{{$i}}_end:
 {{- end }}
 
