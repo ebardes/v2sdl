@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 	"v2sdl/config"
+	"v2sdl/static"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -15,6 +17,8 @@ import (
 
 type WebServer struct {
 	config.Service
+	Local string
+	Addr  string
 }
 
 func (w *WebServer) Start(cfg *config.Config) (err error) {
@@ -30,12 +34,16 @@ func (w *WebServer) run(cfg *config.Config) {
 	r := mux.NewRouter()
 	r.HandleFunc("/", baseHandler)
 	r.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) { writeConfig(buildEnv(cfg), w) })
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	if w.Local == "" {
+		r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", &statichandler{}))
+	} else {
+		r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(w.Local))))
+	}
 	r.PathPrefix("/content/").Handler(http.StripPrefix("/content/", http.FileServer(http.Dir(cfg.Storage))))
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         ":8000",
+		Addr:         w.Addr,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  15 * time.Second,
@@ -102,4 +110,31 @@ func buildEnv(cfg *config.Config) *Environment {
 		Interfaces: displaylist,
 		Media:      config.Media,
 	}
+}
+
+type statichandler struct {
+	http.Handler
+}
+
+func (s *statichandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+	item, err := static.GetItem(path)
+	if err != nil {
+		w.WriteHeader(404)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	var mime string
+	ext := filepath.Ext(path)
+	switch ext {
+	case ".js":
+		mime = "text/javascript; charset=utf-8"
+	default:
+		mime = http.DetectContentType(item.Data)
+	}
+
+	w.Header().Set("Content-Type", mime)
+	w.Header().Set("Content-Length", fmt.Sprint(item.Length))
+	w.Write(item.Data)
 }

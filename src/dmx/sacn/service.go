@@ -123,7 +123,9 @@ func (x *SACN) run() {
 
 // Stop ends the running thread
 func (x *SACN) Stop() {
-	x.socket.Close()
+	if x.socket != nil {
+		x.socket.Close()
+	}
 }
 
 func (x *SACN) Refresh(*config.Config) (err error) {

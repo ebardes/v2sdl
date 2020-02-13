@@ -17,7 +17,10 @@ import (
 )
 
 type options struct {
-	Config string `long:"config" short:"c" long:"location of config.json file"`
+	NoWeb  bool   `long:"noweb" description:"Do not start the web server"`
+	Web    string `long:"web" short:"w" description:"Bind address of the web server" default:":8000"`
+	Config string `long:"config" short:"c" description:"Location of config.json file"`
+	Local  string `long:"static" description:"Serve static assets from the location rather than from the binary"`
 }
 
 func main() {
@@ -39,9 +42,12 @@ func main() {
 	}
 	defer cfg.StopAll()
 
-	w := web.WebServer{}
-	cfg.AddAndStartService(&w)
-
+	if opts.NoWeb == false {
+		w := web.WebServer{}
+		w.Local = opts.Local
+		w.Addr = opts.Web
+		cfg.AddAndStartService(&w)
+	}
 	var net dmx.NetDMX
 
 	switch cfg.Protocol {
