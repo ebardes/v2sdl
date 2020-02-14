@@ -34,6 +34,8 @@ func (w *WebServer) run(cfg *config.Config) {
 	r := mux.NewRouter()
 	r.HandleFunc("/", baseHandler)
 	r.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) { writeConfig(buildEnv(cfg), w) })
+	r.HandleFunc("/api/savenet", func(w http.ResponseWriter, r *http.Request) { savenet(cfg, w, r) })
+
 	if w.Local == "" {
 		r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", &statichandler{}))
 	} else {
@@ -69,10 +71,16 @@ func writeConfig(cfg interface{}, w http.ResponseWriter) {
 type Environment struct {
 	Config     *config.Config
 	Interfaces []Interface
+	Protocols  []Protocol
 	Media      config.Content
 }
 
 type Interface struct {
+	Name string
+	Info string
+}
+
+type Protocol struct {
 	Name string
 	Info string
 }
@@ -105,9 +113,14 @@ func buildEnv(cfg *config.Config) *Environment {
 		})
 	}
 
+	protocols := []Protocol{
+		Protocol{Name: "sacn", Info: "E1.31 SACN"},
+		Protocol{Name: "artnet", Info: "ArtNet"},
+	}
 	return &Environment{
 		Config:     cfg,
 		Interfaces: displaylist,
+		Protocols:  protocols,
 		Media:      config.Media,
 	}
 }
@@ -137,4 +150,20 @@ func (s *statichandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mime)
 	w.Header().Set("Content-Length", fmt.Sprint(item.Length))
 	w.Write(item.Data)
+}
+
+func savenet(cfg *config.Config, w http.ResponseWriter, r *http.Request) {
+	cfgin := config.Config{}
+	j := json.NewDecoder(r.Body)
+	err := j.Decode(&cfgin)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	cfg.Interface = cfgin.Interface
+	cfg.Address = cfgin.Address
+	cfg.Universe = cfgin.Universe
+	cfg.Protocol = cfgin.Protocol
+	cfg.Save()
 }

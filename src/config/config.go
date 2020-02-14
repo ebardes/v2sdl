@@ -140,6 +140,31 @@ func (c *Config) StopAll() {
 	c.services = nil
 }
 
+func (c *Config) Save() (err error) {
+	if c.location == "" {
+		return
+	}
+
+	fn := c.location + ".tmp"
+
+	f, err := os.Create(fn)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	j := json.NewEncoder(f)
+	j.SetIndent("", " ")
+	err = j.Encode(c)
+	if err != nil {
+		return
+	}
+
+	f.Close()
+	os.Rename(fn, c.location)
+	return
+}
+
 func patchup(groups *[][]*Item) {
 	for g := range *groups {
 		groupdir := fmt.Sprintf("group_%03d", g)
